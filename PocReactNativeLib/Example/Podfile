@@ -1,0 +1,131 @@
+platform :ios, '13'
+
+require_relative '../node_modules/react-native/scripts/react_native_pods'
+require_relative '../node_modules/@react-native-community/cli-platform-ios/native_modules'
+
+install! 'cocoapods', :deterministic_uuids => false
+
+# react_native_path = '../node_modules/react-native/'
+# react_path = File.join(react_native_path, 'React')
+# react_common_path = File.join(react_native_path, 'ReactCommon')
+# libraries_path = File.join(react_native_path, 'Libraries')
+# third_party_path = File.join(react_native_path, 'third-party-podspecs')
+
+target 'PocReactNativeLib_Example' do
+  use_frameworks! :linkage => :static
+  inhibit_all_warnings!
+  config = use_native_modules!
+
+  # Flags change depending on the env values.
+  flags = get_default_flags()
+
+  pod 'PocReactNativeLib', path: '../'
+
+
+  use_react_native!(
+    # Hermes is now enabled by default. Disable by setting this flag to false.
+    # Upcoming versions of React Native may rely on get_default_flags(), but
+    # we make it explicit here to aid in the React Native upgrade process.
+    :hermes_enabled => true,
+    :fabric_enabled => flags[:fabric_enabled],
+    # Enables Flipper.
+    #
+    # Note that if you have use_frameworks! enabled, Flipper will not work and
+    # you should disable the next line.
+    # :flipper_configuration => FlipperConfiguration.enabled,
+    # An absolute path to your application root.
+    :app_path => "#{Pod::Config.instance.installation_root}/.."
+  )
+
+
+  pre_install do |installer|
+    Pod::Installer::Xcode::TargetValidator.send(:define_method, :verify_no_static_framework_transitive_dependencies) {}
+  
+    installer.pod_targets.each do |pod|
+      if pod.name.eql?('RNPermissions') || pod.name.start_with?('Permission-') || pod.name.eql?('RNVectorIcons')
+        def pod.build_type;
+          # Uncomment the line corresponding to your CocoaPods version
+          Pod::BuildType.static_library # >= 1.9
+          # Pod::Target::BuildType.static_library # < 1.9
+        end
+      end
+    end
+  end
+
+  post_install do |installer|
+    react_native_post_install(
+      installer,
+      # Set `mac_catalyst_enabled` to `true` in order to apply patches
+      # necessary for Mac Catalyst builds
+      :mac_catalyst_enabled => false
+    )
+    __apply_Xcode_12_5_M1_post_install_workaround(installer)
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+      end
+    end
+  end
+end
+
+
+# use_frameworks! :linkage => :static
+
+# platform :ios, '12.4'
+
+# require_relative '../node_modules/react-native/scripts/react_native_pods'
+# require_relative '../node_modules/@react-native-community/cli-platform-ios/native_modules'
+
+
+# react_native_path = '../node_modules/react-native/'
+# react_path = File.join(react_native_path, 'React')
+# react_common_path = File.join(react_native_path, 'ReactCommon')
+# libraries_path = File.join(react_native_path, 'Libraries')
+# third_party_path = File.join(react_native_path, 'third-party-podspecs')
+
+# use_react_native! 
+# target 'PocReactNativeLib_Example' do
+#   pod 'PocReactNativeLib', :path => '../'
+
+#   # We want extra developer support in React inside this app
+#   pod 'React', path: react_native_path
+#   pod 'React-Core', :path => react_native_path
+#   pod 'React-RCTFabric', :path => react_path
+#   pod 'RCTRequired', :path => File.join(libraries_path, 'RCTRequired')
+#   pod 'RCTTypeSafety', :path => File.join(libraries_path, 'TypeSafety')
+#   pod 'React-RCTActionSheet', :path => File.join(libraries_path, 'ActionSheetIOS')
+#   pod 'React-RCTAnimation', :path => File.join(libraries_path, 'NativeAnimation')
+#   pod 'React-RCTBlob', :path => File.join(libraries_path, 'Blob')
+#   pod 'React-RCTImage', :path => File.join(libraries_path, 'Image')
+#   pod 'React-RCTLinking', :path => File.join(libraries_path, 'LinkingIOS')
+#   pod 'React-RCTNetwork', :path => File.join(libraries_path, 'Network')
+#   pod 'React-RCTSettings', :path => File.join(libraries_path, 'Settings')
+#   pod 'React-RCTText', :path => File.join(libraries_path, 'Text')
+#   pod 'React-RCTVibration', :path => File.join(libraries_path, 'Vibration')
+
+#   # We're letting CP know where it can find these Podspecs
+#   pod 'React-Fabric', :path => react_common_path
+#   pod 'React-graphics', :path => File.join(react_common_path, 'react/renderer/graphics')
+#   pod 'React-perflogger',  :path => File.join(react_common_path, 'reactperflogger')
+#   pod 'React-cxxreact', :path => File.join(react_common_path, 'cxxreact')
+#   pod 'React-jsi', :path => File.join(react_common_path, 'jsi')
+#   pod 'React-jsiexecutor', :path => File.join(react_common_path, 'jsiexecutor')
+#   pod 'React-jsinspector', :path => File.join(react_common_path, 'jsinspector')
+#   pod 'Yoga', :path => File.join(react_common_path, 'yoga')
+
+#   pod 'RCT-Folly', podspec: File.join(third_party_path, 'RCT-Folly.podspec')
+#   pod 'DoubleConversion', podspec: File.join(third_party_path, 'DoubleConversion.podspec')
+#   pod 'glog', podspec: File.join(third_party_path, 'glog.podspec')
+
+#   # post_install do |installer|
+#   #   installer.pods_project.targets.each do |target|
+#   #     if target.name == "React-Fabric"
+#   #       target.remove_from_project
+#   #     end
+#   #   end
+#   # end
+
+#   target 'PocReactNativeLib_Tests' do
+#     inherit! :search_paths
+#   end
+# end
